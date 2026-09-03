@@ -1,0 +1,12 @@
+{
+  "appId": "com.mediaflow.downloader",
+  "appName": "MediaFlow Downloader",
+  "webDir": "out",
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  },
+  "android": {
+    "allowMixedContent": true
+  }
+}

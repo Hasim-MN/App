@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">MediaFlow Downloader</string>
+    <string name="title_activity_main">MediaFlow Downloader</string>
+    <string name="package_name">com.mediaflow.downloader</string>
+    <string name="custom_url_scheme">com.mediaflow.downloader</string>
+</resources>

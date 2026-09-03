@@ -1,9 +1,29 @@
 import { MediaInfo, JobProgress, SystemHealth, JobHistoryItem } from './types';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+export function getApiBaseUrl(): string {
+  if (typeof window !== 'undefined') {
+    const custom = localStorage.getItem('mediaflow_backend_url');
+    if (custom && custom.trim()) {
+      return custom.trim().replace(/\/+$/, '');
+    }
+  }
+  return (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').replace(/\/+$/, '');
+}
+
+export function setApiBaseUrl(url: string): void {
+  if (typeof window !== 'undefined') {
+    if (!url || !url.trim()) {
+      localStorage.removeItem('mediaflow_backend_url');
+    } else {
+      localStorage.setItem('mediaflow_backend_url', url.trim().replace(/\/+$/, ''));
+    }
+    window.dispatchEvent(new Event('mediaflow_backend_url_changed'));
+  }
+}
 
 export async function analyzeUrl(url: string): Promise<MediaInfo> {
-  const response = await fetch(`${API_BASE}/api/analyze`, {
+  const base = getApiBaseUrl();
+  const response = await fetch(`${base}/api/analyze`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ url }),
@@ -25,7 +45,7 @@ export async function startVideoDownload(payload: {
   title?: string;
   thumbnail?: string;
 }): Promise<{ job_id: string; stream_url: string; status_url: string }> {
-  const response = await fetch(`${API_BASE}/api/download/video`, {
+  const response = await fetch(`${getApiBaseUrl()}/api/download/video`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -53,7 +73,7 @@ export async function startAudioDownload(payload: {
   title?: string;
   thumbnail?: string;
 }): Promise<{ job_id: string; stream_url: string; status_url: string }> {
-  const response = await fetch(`${API_BASE}/api/download/audio`, {
+  const response = await fetch(`${getApiBaseUrl()}/api/download/audio`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -68,7 +88,7 @@ export async function startAudioDownload(payload: {
 }
 
 export async function getJobStatus(jobId: string): Promise<JobProgress> {
-  const response = await fetch(`${API_BASE}/api/jobs/${jobId}`);
+  const response = await fetch(`${getApiBaseUrl()}/api/jobs/${jobId}`);
   const data = await response.json();
   if (!response.ok) {
     throw new Error(data.detail || 'Failed to fetch job status');
@@ -77,7 +97,7 @@ export async function getJobStatus(jobId: string): Promise<JobProgress> {
 }
 
 export async function getHealth(): Promise<SystemHealth> {
-  const response = await fetch(`${API_BASE}/api/health`);
+  const response = await fetch(`${getApiBaseUrl()}/api/health`);
   if (!response.ok) {
     throw new Error('Health check failed');
   }
@@ -86,7 +106,7 @@ export async function getHealth(): Promise<SystemHealth> {
 
 export async function getJobHistory(): Promise<JobHistoryItem[]> {
   try {
-    const response = await fetch(`${API_BASE}/api/jobs/history`);
+    const response = await fetch(`${getApiBaseUrl()}/api/jobs/history`);
     if (response.ok) {
       return response.json();
     }
@@ -97,7 +117,7 @@ export async function getJobHistory(): Promise<JobHistoryItem[]> {
 }
 
 export function getDownloadUrl(jobId: string): string {
-  return `${API_BASE}/api/jobs/${jobId}/download`;
+  return `${getApiBaseUrl()}/api/jobs/${jobId}/download`;
 }
 
 /**
@@ -152,7 +172,7 @@ export function subscribeToJobProgress(
   };
 
   try {
-    eventSource = new EventSource(`${API_BASE}/api/jobs/${jobId}/stream`);
+    eventSource = new EventSource(`${getApiBaseUrl()}/api/jobs/${jobId}/stream`);
 
     eventSource.addEventListener('progress', (e: MessageEvent) => {
       if (isClosed) return;

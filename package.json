@@ -8,6 +8,8 @@
     "dev:frontend": "npm --prefix frontend run dev",
     "dev:backend": "py -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload",
     "build": "npm --prefix frontend run build",
+    "build:mobile": "npm --prefix frontend run build:mobile",
+    "cap:sync": "npm --prefix frontend run cap:sync",
     "start": "npm --prefix frontend start",
     "lint": "npm --prefix frontend run lint"
   }

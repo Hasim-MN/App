@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Sparkles, History, Activity, ShieldCheck, Film, Music2 } from 'lucide-react';
+import { Sparkles, History, Activity, ShieldCheck, Film, Music2, Server } from 'lucide-react';
 import { getHealth } from '@/lib/api';
 import { SystemHealth } from '@/lib/types';
 import SystemHealthModal from './SystemHealthModal';
 import HistoryDrawer from './HistoryDrawer';
+import ServerSettingsModal from './ServerSettingsModal';
 
 interface NavbarProps {
   onSelectHistoryUrl?: (url: string) => void;
@@ -15,11 +16,22 @@ export default function Navbar({ onSelectHistoryUrl }: NavbarProps) {
   const [health, setHealth] = useState<SystemHealth | null>(null);
   const [isHealthOpen, setIsHealthOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isServerOpen, setIsServerOpen] = useState(false);
 
-  useEffect(() => {
+  const fetchHealth = () => {
     getHealth()
       .then(setHealth)
-      .catch((err) => console.error('Health check failed:', err));
+      .catch((err) => {
+        console.error('Health check failed:', err);
+        setHealth(null);
+      });
+  };
+
+  useEffect(() => {
+    fetchHealth();
+    const handleUrlChanged = () => fetchHealth();
+    window.addEventListener('mediaflow_backend_url_changed', handleUrlChanged);
+    return () => window.removeEventListener('mediaflow_backend_url_changed', handleUrlChanged);
   }, []);
 
   const isHealthy = health?.status === 'ok';
@@ -70,6 +82,17 @@ export default function Navbar({ onSelectHistoryUrl }: NavbarProps) {
               </span>
             </button>
 
+            {/* Server Settings Button */}
+            <button
+              id="btn-server-settings"
+              onClick={() => setIsServerOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:border-indigo-500/50 hover:text-indigo-400 text-xs font-medium text-slate-300 transition-all"
+              title="Configure Backend API Server (Mobile/Cloud)"
+            >
+              <Server className="w-3.5 h-3.5" />
+              <span className="hidden xs:inline">Server</span>
+            </button>
+
             {/* History Button */}
             <button
               id="btn-history-toggle"
@@ -90,6 +113,13 @@ export default function Navbar({ onSelectHistoryUrl }: NavbarProps) {
 
         </div>
       </header>
+
+      {/* Server Settings Modal */}
+      <ServerSettingsModal
+        isOpen={isServerOpen}
+        onClose={() => setIsServerOpen(false)}
+        onServerUpdated={fetchHealth}
+      />
 
       {/* Health Diagnostic Modal */}
       {isHealthOpen && (
