@@ -1,0 +1,14 @@
+{
+  "name": "mediaflow-downloader",
+  "version": "1.0.0",
+  "private": true,
+  "description": "MediaFlow Downloader - Video and audio inspection, merging, and conversion suite",
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:backend": "py -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload",
+    "build": "npm --prefix frontend run build",
+    "start": "npm --prefix frontend start",
+    "lint": "npm --prefix frontend run lint"
+  }
+}

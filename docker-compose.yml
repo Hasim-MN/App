@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  mediaflow:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mediaflow_app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+      - "8000:8000"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - MAX_CONCURRENT_JOBS=10
+      - MAX_FILE_SIZE_BYTES=2147483648
+    tmpfs:
+      - /tmp/mediaflow
+    security_opt:
+      - no-new-privileges:true
