@@ -68,17 +68,27 @@ export default function Navbar({ onSelectHistoryUrl }: NavbarProps) {
             {/* System Status Pill */}
             <button
               id="btn-health-status"
-              onClick={() => setIsHealthOpen(true)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900/90 border border-slate-800 hover:border-slate-700 text-xs font-medium text-slate-300 transition-all hover:bg-slate-800/60"
-              title="System engine diagnostic status"
+              onClick={() => {
+                if (isHealthy) {
+                  setIsHealthOpen(true);
+                } else {
+                  setIsServerOpen(true);
+                }
+              }}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all cursor-pointer ${
+                isHealthy
+                  ? 'bg-slate-900/90 border-slate-800 hover:border-slate-700 text-slate-300 hover:bg-slate-800/60'
+                  : 'bg-rose-950/40 border-rose-800/60 hover:border-rose-700 text-rose-300 hover:bg-rose-900/40 animate-pulse'
+              }`}
+              title={isHealthy ? 'System engine diagnostic status' : 'Server is offline. Tap to configure connection.'}
             >
               <span className="relative flex h-2 w-2">
-                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isHealthy ? 'bg-emerald-400' : 'bg-amber-400'}`}></span>
-                <span className={`relative inline-flex rounded-full h-2 w-2 ${isHealthy ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isHealthy ? 'bg-emerald-400' : 'bg-rose-400'}`}></span>
+                <span className={`relative inline-flex rounded-full h-2 w-2 ${isHealthy ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
               </span>
-              <span className="hidden sm:inline">Engine:</span>
-              <span className={isHealthy ? 'text-emerald-400' : 'text-amber-400'}>
-                {health?.dependencies.ffmpeg.available ? 'FFmpeg 8.0 Ready' : 'Degraded'}
+              <span className="hidden sm:inline">{isHealthy ? 'Engine:' : 'Server:'}</span>
+              <span className={isHealthy ? 'text-emerald-400' : 'text-rose-400 font-semibold'}>
+                {isHealthy ? (health?.dependencies?.ffmpeg?.available ? 'FFmpeg Ready' : 'Online') : 'Offline (Tap)'}
               </span>
             </button>
 

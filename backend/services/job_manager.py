@@ -1,4 +1,5 @@
 import os
+import shutil
 import time
 import uuid
 import asyncio
@@ -299,7 +300,7 @@ class JobManager:
                     # If container matches, rename directly; otherwise remux
                     src_ext = downloaded_file.split(".")[-1].lower()
                     if src_ext == container:
-                        os.rename(downloaded_file, final_output_path)
+                        shutil.move(downloaded_file, final_output_path)
                     else:
                         await self.update_job(job_id, status=JobStatus.PROCESSING, phase=f"Remuxing to {container.upper()}...", percent=88.0)
                         

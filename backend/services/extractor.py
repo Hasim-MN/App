@@ -2,6 +2,10 @@ import logging
 from typing import Dict, Any, Optional, Callable
 import yt_dlp
 
+import os
+from pathlib import Path
+from backend.services.ffmpeg_service import get_ffmpeg_dir
+
 logger = logging.getLogger("mediaflow.extractor")
 
 class ExtractorError(Exception):
@@ -13,19 +17,37 @@ class MediaRestrictedError(ExtractorError):
     pass
 
 def get_ydl_base_options() -> Dict[str, Any]:
-    """Returns safe, secure default options for yt-dlp."""
-    return {
+    """Returns safe, secure default options for yt-dlp with Windows filesystem resilience."""
+    opts: Dict[str, Any] = {
         "quiet": True,
         "no_warnings": True,
         "noplaylist": True,
-        "socket_timeout": 20,
+        "socket_timeout": 25,
         "retries": 3,
         "nocheckcertificate": False,
         "prefer_insecure": False,
         "ignoreerrors": False,
         "geo_bypass": True,
         "extract_flat": False,
+        # Windows & OS file system resilience
+        "windowsfilenames": True,
+        "restrictfilenames": True,
+        "trim_file_name": 100,
+        "updatetime": False,       # Prevents Windows os.utime [Errno 22] Invalid argument
+        "no_mtime": True,
+        "overwrites": True,
+        "no_color": True,
     }
+
+    # Bind FFmpeg location if available
+    try:
+        ffmpeg_dir = get_ffmpeg_dir()
+        if ffmpeg_dir:
+            opts["ffmpeg_location"] = ffmpeg_dir
+    except Exception as e:
+        logger.debug(f"Could not bind ffmpeg_location in yt-dlp: {e}")
+
+    return opts
 
 def analyze_media_url(url: str) -> Dict[str, Any]:
     """
@@ -82,11 +104,24 @@ def download_media_stream(
     progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None
 ) -> Dict[str, Any]:
     """
-    Downloads the specified format stream to disk using yt-dlp.
+    Downloads the specified format stream to disk using yt-dlp with Windows safe paths.
     """
     opts = get_ydl_base_options()
-    opts["format"] = format_id
-    opts["outtmpl"] = output_template
+    
+    # Isolate directory and filename to prevent backslash/path concatenation bugs on Windows
+    out_path = Path(output_template)
+    job_dir = str(out_path.parent.resolve())
+    file_name_tmpl = out_path.name
+
+    opts["paths"] = {"home": job_dir, "temp": job_dir}
+    opts["outtmpl"] = {"default": file_name_tmpl}
+    
+    # Resilient format selector: prioritize requested format_id with safe fallbacks
+    if format_id and format_id.strip() and format_id.strip().lower() not in ("none", "null", "undefined"):
+        clean_fid = format_id.strip()
+        opts["format"] = f"{clean_fid}/bestvideo+bestaudio/best"
+    else:
+        opts["format"] = "bestvideo+bestaudio/best"
     
     if progress_callback:
         opts["progress_hooks"] = [progress_callback]
@@ -102,5 +137,18 @@ def download_media_stream(
                 "This media cannot be processed because it is protected, restricted, or unavailable."
             )
         raise ExtractorError(f"Download failed: {str(e)[:120]}")
+    except yt_dlp.utils.UnavailableVideoError as e:
+        err_str = str(e)
+        logger.error(f"UnavailableVideoError downloading {url}: {err_str}")
+        if "errno 22" in err_str.lower():
+            raise ExtractorError("File system error: filename or stream parameters could not be written to disk.")
+        raise ExtractorError(f"Media stream unavailable: {err_str[:120]}")
+    except yt_dlp.utils.YoutubeDLError as e:
+        logger.error(f"YoutubeDLError downloading {url}: {e}")
+        raise ExtractorError(f"Stream download error: {str(e)[:120]}")
     except Exception as e:
-        raise ExtractorError(f"Stream download encountered an error: {str(e)}")
+        err_str = str(e)
+        logger.error(f"Unexpected error downloading stream: {err_str}")
+        if "errno 22" in err_str.lower():
+            raise ExtractorError("Storage write error: invalid file argument or path restriction.")
+        raise ExtractorError(f"Stream download encountered an error: {err_str[:120]}")

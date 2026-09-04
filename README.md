@@ -123,20 +123,22 @@ Because the app runs on your phone:
    - **Cloud/Hosted**: `https://your-api-domain.com`
 3. Tap **Test Connection** & **Save & Connect**.
 
-### 🛠️ Building the APK Locally
-To build the Android project locally with Android Studio or Gradle:
-```bash
-# 1. Build Next.js static assets and sync to Android
-npm run build:mobile
+### 📱 Running Mobile App Without Keeping Local Terminal Open
 
-# 2. Open project in Android Studio (optional)
-npx --prefix frontend cap open android
+#### Option A: Run Backend Silently in Windows Background (Local PC)
+If you don't want to keep a terminal window open on your computer:
+1. Double-click `scripts/start_backend_background.vbs`.
+   - The backend runs silently in the background with no command prompt window.
+   - Closing your IDE or terminals will **not** kill it.
+2. To stop the background server at any time, double-click `scripts/stop_backend.bat`.
 
-# 3. Or build directly via Gradle:
-cd frontend/android
-./gradlew assembleDebug
-```
-The resulting APK will be generated at `frontend/android/app/build/outputs/apk/debug/app-debug.apk`.
+#### Option B: Deploy 24/7 for Free on Render.com (Permanent Cloud URL)
+To use the mobile app anywhere without keeping your PC powered on:
+1. Push this repository to GitHub.
+2. Log into [Render.com](https://render.com) (free tier available).
+3. Click **New +** -> **Blueprint** and connect your GitHub repo (it automatically reads `render.yaml`).
+4. Once deployed, copy your permanent service URL (e.g. `https://mediaflow-backend.onrender.com`).
+5. Open your mobile app, tap **Server**, paste your URL, and tap **Save & Connect**. Your mobile app will work 24/7 worldwide!
 
 ---
 

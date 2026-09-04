@@ -57,6 +57,14 @@ def get_ffprobe_version() -> Optional[str]:
         logger.warning(f"Failed to get ffprobe version: {e}")
     return None
 
+def get_ffmpeg_dir() -> Optional[str]:
+    """Returns the directory containing ffmpeg and ffprobe binaries."""
+    ensure_ffmpeg_initialized()
+    binary = shutil.which("ffmpeg")
+    if binary:
+        return os.path.dirname(os.path.abspath(binary))
+    return None
+
 def probe_media_file(file_path: str) -> Optional[Dict[str, Any]]:
     """Probes a media file using ffprobe and returns json stream & format metadata."""
     ensure_ffmpeg_initialized()

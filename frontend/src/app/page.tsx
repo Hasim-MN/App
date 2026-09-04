@@ -8,12 +8,13 @@ import FormatTabs, { ActiveTab } from '@/components/FormatTabs';
 import VideoOptionsTable from '@/components/VideoOptionsTable';
 import AudioConversionPanel from '@/components/AudioConversionPanel';
 import DownloadProgressModal from '@/components/DownloadProgressModal';
+import ServerSettingsModal from '@/components/ServerSettingsModal';
 import { MediaInfo, VideoFormat, JobProgress, JobHistoryItem } from '@/lib/types';
 import { 
   analyzeUrl, startVideoDownload, startAudioDownload, 
-  subscribeToJobProgress 
+  subscribeToJobProgress, getHealth, getApiBaseUrl 
 } from '@/lib/api';
-import { ShieldCheck, Film, Music2, Cpu, HardDrive, CheckCircle2 } from 'lucide-react';
+import { ShieldCheck, Film, Music2, Cpu, HardDrive, CheckCircle2, AlertTriangle, Server, ArrowRight } from 'lucide-react';
 
 export default function Home() {
   const [url, setUrl] = useState<string>('');
@@ -22,10 +23,25 @@ export default function Home() {
   const [media, setMedia] = useState<MediaInfo | null>(null);
   const [activeTab, setActiveTab] = useState<ActiveTab>('video');
 
+  // Server health & modal
+  const [isServerOnline, setIsServerOnline] = useState<boolean | null>(null);
+  const [isServerModalOpen, setIsServerModalOpen] = useState<boolean>(false);
+
   // Job processing & modal state
   const [currentProgress, setCurrentProgress] = useState<JobProgress | null>(null);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+
+  useEffect(() => {
+    const checkServer = () => {
+      getHealth()
+        .then(() => setIsServerOnline(true))
+        .catch(() => setIsServerOnline(false));
+    };
+    checkServer();
+    window.addEventListener('mediaflow_backend_url_changed', checkServer);
+    return () => window.removeEventListener('mediaflow_backend_url_changed', checkServer);
+  }, []);
 
   const handleAnalyze = async (targetUrl?: string) => {
     const queryUrl = (targetUrl || url).trim();
@@ -206,6 +222,28 @@ export default function Home() {
         handleAnalyze(selectedUrl);
       }} />
 
+      {/* Offline Alert Banner */}
+      {isServerOnline === false && (
+        <div className="bg-rose-950/80 border-b border-rose-800/80 text-rose-200 px-4 py-2.5 backdrop-blur-md animate-fade-in">
+          <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2.5">
+              <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+              <span>
+                <strong className="text-white">Backend Offline:</strong> Cannot reach API server at <code className="bg-black/40 px-1 py-0.5 rounded text-rose-300 font-mono">{getApiBaseUrl()}</code>. If you closed your terminal, run the background script or configure server.
+              </span>
+            </div>
+            <button
+              onClick={() => setIsServerModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-rose-900/90 hover:bg-rose-800 text-white font-medium border border-rose-700/80 transition-all shrink-0 cursor-pointer shadow-sm"
+            >
+              <Server className="w-3.5 h-3.5" />
+              <span>Configure Server</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Main Content Area */}
       <main className="flex-1 pb-16">
         
@@ -305,6 +343,17 @@ export default function Home() {
           } else {
             handleConvertAudio({ format: 'mp3', quality_bitrate: '320k' });
           }
+        }}
+      />
+
+      {/* Server Settings Modal */}
+      <ServerSettingsModal
+        isOpen={isServerModalOpen}
+        onClose={() => setIsServerModalOpen(false)}
+        onServerUpdated={() => {
+          getHealth()
+            .then(() => setIsServerOnline(true))
+            .catch(() => setIsServerOnline(false));
         }}
       />
 

@@ -115,18 +115,50 @@ export default function ServerSettingsModal({
             </div>
           </div>
 
-          {/* Android Mobile Guidance */}
-          <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 text-xs text-slate-400 space-y-1.5">
-            <div className="flex items-center gap-2 font-medium text-slate-300">
-              <Smartphone className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Mobile / Android Instructions:</span>
+          {/* Quick Presets */}
+          <div className="space-y-1.5">
+            <span className="text-[11px] font-medium text-slate-400">Quick URL Presets:</span>
+            <div className="flex flex-wrap gap-1.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setServerUrl('http://localhost:8000');
+                  setTestStatus('idle');
+                }}
+                className="px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800 hover:border-cyan-500/50 text-[11px] text-slate-300 transition-colors"
+              >
+                Localhost (PC)
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setServerUrl('http://10.0.2.2:8000');
+                  setTestStatus('idle');
+                }}
+                className="px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800 hover:border-cyan-500/50 text-[11px] text-slate-300 transition-colors"
+              >
+                Android Emulator
+              </button>
             </div>
-            <p>
-              • On mobile, <code className="text-cyan-300 bg-cyan-950/60 px-1 py-0.5 rounded">localhost</code> refers to the phone itself.
-            </p>
-            <p>
-              • Use your computer&apos;s Wi-Fi IP address (e.g. <code className="text-cyan-300 bg-cyan-950/60 px-1 py-0.5 rounded">http://192.168.x.x:8000</code>) or your hosted backend URL.
-            </p>
+          </div>
+
+          {/* Android Mobile & Background Guidance */}
+          <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800/80 text-xs text-slate-300 space-y-2">
+            <div className="flex items-center gap-2 font-medium text-cyan-400">
+              <Smartphone className="w-4 h-4 shrink-0" />
+              <span>Mobile & Local Server Setup:</span>
+            </div>
+            <div className="space-y-1 text-[11px] text-slate-400 leading-relaxed">
+              <p>
+                • <strong className="text-slate-200">Terminal closed error?</strong> Closing your command prompt kills the local backend. Double-click <code className="text-cyan-300 bg-cyan-950/70 px-1 py-0.5 rounded">scripts/start_backend_background.vbs</code> on your PC to run it silently in the background without any open window!
+              </p>
+              <p>
+                • <strong className="text-slate-200">Same Wi-Fi:</strong> On mobile phones, enter your computer&apos;s local IP address (e.g. <code className="text-cyan-300 bg-cyan-950/70 px-1 py-0.5 rounded">http://192.168.x.x:8000</code>).
+              </p>
+              <p>
+                • <strong className="text-slate-200">24/7 Cloud Hosting (Recommended):</strong> Deploy the backend to Render.com for free using <code className="text-cyan-300 bg-cyan-950/70 px-1 py-0.5 rounded">render.yaml</code> so your mobile app works 24/7 anywhere, even when your PC is turned off.
+              </p>
+            </div>
           </div>
 
           {/* Test Status Banner */}
