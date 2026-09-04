@@ -17,7 +17,7 @@ class MediaRestrictedError(ExtractorError):
     pass
 
 def get_ydl_base_options() -> Dict[str, Any]:
-    """Returns safe, secure default options for yt-dlp with Windows filesystem resilience."""
+    """Returns safe, secure default options for yt-dlp with Windows filesystem resilience and anti-bot bypass."""
     opts: Dict[str, Any] = {
         "quiet": True,
         "no_warnings": True,
@@ -37,7 +37,54 @@ def get_ydl_base_options() -> Dict[str, Any]:
         "no_mtime": True,
         "overwrites": True,
         "no_color": True,
+        # Multi-client fallback for YouTube to bypass datacenter IP restrictions
+        "extractor_args": {
+            "youtube": {
+                "player_client": ["android", "ios", "mweb", "web"],
+            }
+        },
+        "http_headers": {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+            "Accept-Language": "en-US,en;q=0.9",
+        },
     }
+
+    # Bind JS Runtime (Node.js or Deno) for YouTube signature deciphering
+    import shutil
+    if shutil.which("node"):
+        opts["js_runtimes"] = {"node": {}}
+    elif shutil.which("deno"):
+        opts["js_runtimes"] = {"deno": {}}
+
+    # Bind cookies if passed via environment variable (useful for Render/Cloud hosts)
+    raw_cookies = os.environ.get("YOUTUBE_COOKIES") or os.environ.get("COOKIES_DATA")
+    if raw_cookies and raw_cookies.strip():
+        import tempfile
+        import base64
+        data = raw_cookies.strip()
+        try:
+            if not ("# Netscape" in data or "\t" in data):
+                data = base64.b64decode(data).decode("utf-8")
+        except Exception:
+            pass
+        cookie_path = os.path.join(tempfile.gettempdir(), "mediaflow_yt_cookies.txt")
+        try:
+            with open(cookie_path, "w", encoding="utf-8") as f:
+                f.write(data)
+            opts["cookiefile"] = cookie_path
+        except Exception as e:
+            logger.warning(f"Could not write YOUTUBE_COOKIES to temp file: {e}")
+    else:
+        cookie_file = os.environ.get("COOKIES_FILE") or os.environ.get("YOUTUBE_COOKIES_FILE")
+        if cookie_file and os.path.exists(cookie_file):
+            opts["cookiefile"] = cookie_file
+        elif os.path.exists("cookies.txt"):
+            opts["cookiefile"] = "cookies.txt"
+
+    # Bind proxy if configured
+    proxy = os.environ.get("HTTP_PROXY") or os.environ.get("HTTPS_PROXY")
+    if proxy:
+        opts["proxy"] = proxy
 
     # Bind FFmpeg location if available
     try:
@@ -77,8 +124,14 @@ def analyze_media_url(url: str) -> Dict[str, Any]:
         err_msg = str(e).lower()
         logger.warning(f"yt-dlp download error for {url}: {err_msg}")
         
+        # Check for datacenter / bot block patterns
+        if "failed to extract any player response" in err_msg or "confirm you're not a bot" in err_msg:
+            raise ExtractorError(
+                "YouTube anti-bot block detected on this server IP. "
+                "Connect your mobile app to your Local PC server (e.g. http://<PC-IP>:8000) on the same Wi-Fi."
+            )
         # Check for DRM / restricted patterns
-        if any(keyword in err_msg for keyword in [
+        elif any(keyword in err_msg for keyword in [
             "drm", "protected", "copyright", "sign in", "login", 
             "private", "members-only", "premium", "paywall", 
             "geographic", "blocked", "restricted", "token"
@@ -132,6 +185,11 @@ def download_media_stream(
             return info
     except yt_dlp.utils.DownloadError as e:
         err_msg = str(e).lower()
+        if "failed to extract any player response" in err_msg or "confirm you're not a bot" in err_msg:
+            raise ExtractorError(
+                "YouTube anti-bot block detected on this server IP. "
+                "Connect your mobile app to your Local PC server (http://<PC-IP>:8000) on the same Wi-Fi."
+            )
         if any(keyword in err_msg for keyword in ["drm", "protected", "private", "sign in"]):
             raise MediaRestrictedError(
                 "This media cannot be processed because it is protected, restricted, or unavailable."

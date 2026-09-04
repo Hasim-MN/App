@@ -122,6 +122,16 @@ export default function ServerSettingsModal({
               <button
                 type="button"
                 onClick={() => {
+                  setServerUrl('http://172.21.144.47:8000');
+                  setTestStatus('idle');
+                }}
+                className="px-2.5 py-1 rounded-lg bg-cyan-950/60 border border-cyan-800/80 hover:border-cyan-400 text-[11px] text-cyan-300 font-medium transition-colors"
+              >
+                Local Wi-Fi PC (172.21.144.47)
+              </button>
+              <button
+                type="button"
+                onClick={() => {
                   setServerUrl('http://localhost:8000');
                   setTestStatus('idle');
                 }}
@@ -146,17 +156,17 @@ export default function ServerSettingsModal({
           <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800/80 text-xs text-slate-300 space-y-2">
             <div className="flex items-center gap-2 font-medium text-cyan-400">
               <Smartphone className="w-4 h-4 shrink-0" />
-              <span>Mobile & Local Server Setup:</span>
+              <span>Mobile & Server Setup Guide:</span>
             </div>
-            <div className="space-y-1 text-[11px] text-slate-400 leading-relaxed">
+            <div className="space-y-1.5 text-[11px] text-slate-400 leading-relaxed">
               <p>
-                • <strong className="text-slate-200">Terminal closed error?</strong> Closing your command prompt kills the local backend. Double-click <code className="text-cyan-300 bg-cyan-950/70 px-1 py-0.5 rounded">scripts/start_backend_background.vbs</code> on your PC to run it silently in the background without any open window!
+                • <strong className="text-cyan-300">Recommended for YouTube (Local Wi-Fi):</strong> Cloud hosts (Render/AWS) have their IP addresses blocked by YouTube. Connect your phone to your PC on the same Wi-Fi using <code className="text-cyan-300 bg-cyan-950/70 px-1 py-0.5 rounded font-mono">http://172.21.144.47:8000</code>.
               </p>
               <p>
-                • <strong className="text-slate-200">Same Wi-Fi:</strong> On mobile phones, enter your computer&apos;s local IP address (e.g. <code className="text-cyan-300 bg-cyan-950/70 px-1 py-0.5 rounded">http://192.168.x.x:8000</code>).
+                • <strong className="text-slate-200">Terminal closed error?</strong> Closing your command prompt kills the local backend. Double-click <code className="text-cyan-300 bg-cyan-950/70 px-1 py-0.5 rounded">scripts/start_backend_background.vbs</code> on your PC to run it silently in the background with zero open windows!
               </p>
               <p>
-                • <strong className="text-slate-200">24/7 Cloud Hosting (Recommended):</strong> Deploy the backend to Render.com for free using <code className="text-cyan-300 bg-cyan-950/70 px-1 py-0.5 rounded">render.yaml</code> so your mobile app works 24/7 anywhere, even when your PC is turned off.
+                • <strong className="text-slate-200">Cloud Hosting (Render):</strong> If using Render, YouTube may require cookies or local residential IP routing. Non-YouTube sources (Instagram, Twitter, Facebook, TikTok, etc.) work anywhere 24/7 on Render.
               </p>
             </div>
           </div>
