@@ -37,12 +37,6 @@ def get_ydl_base_options() -> Dict[str, Any]:
         "no_mtime": True,
         "overwrites": True,
         "no_color": True,
-        # Multi-client fallback for YouTube to bypass datacenter IP restrictions
-        "extractor_args": {
-            "youtube": {
-                "player_client": ["android", "ios", "mweb", "web"],
-            }
-        },
         "http_headers": {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
             "Accept-Language": "en-US,en;q=0.9",
@@ -103,6 +97,8 @@ def analyze_media_url(url: str) -> Dict[str, Any]:
     """
     opts = get_ydl_base_options()
     opts["skip_download"] = True
+    opts["format"] = "all/best"
+    opts["check_formats"] = False
     
     try:
         with yt_dlp.YoutubeDL(opts) as ydl:
