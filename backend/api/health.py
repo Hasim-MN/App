@@ -22,6 +22,20 @@ async def health_check():
     
     overall_status = "ok" if (ffmpeg_ok and ffmpeg_ver and ffprobe_ver) else "degraded"
     
+    import os
+    import shutil
+    
+    raw_cookies = (
+        os.environ.get("YOUTUBE_COOKIES") or 
+        os.environ.get("YOUTUBE_COOKIE") or 
+        os.environ.get("COOKIES") or 
+        os.environ.get("COOKIE") or 
+        os.environ.get("COOKIES_DATA") or
+        os.environ.get("COOKIES_TEXT")
+    )
+    has_cookies = bool(raw_cookies and raw_cookies.strip()) or os.path.exists("cookies.txt")
+    cookies_bytes = len(raw_cookies.strip()) if (raw_cookies and raw_cookies.strip()) else 0
+
     return {
         "status": overall_status,
         "app_name": settings.APP_NAME,
@@ -38,6 +52,14 @@ async def health_check():
             "yt_dlp": {
                 "available": True,
                 "version": ytdlp_ver
+            },
+            "js_runtime": {
+                "node_available": bool(shutil.which("node")),
+                "deno_available": bool(shutil.which("deno"))
+            },
+            "youtube_auth": {
+                "cookies_loaded": has_cookies,
+                "cookies_bytes": cookies_bytes
             }
         },
         "limits": {

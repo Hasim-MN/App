@@ -51,11 +51,21 @@ def get_ydl_base_options() -> Dict[str, Any]:
         opts["js_runtimes"] = {"deno": {}}
 
     # Bind cookies if passed via environment variable (useful for Render/Cloud hosts)
-    raw_cookies = os.environ.get("YOUTUBE_COOKIES") or os.environ.get("COOKIES_DATA")
+    raw_cookies = (
+        os.environ.get("YOUTUBE_COOKIES") or 
+        os.environ.get("YOUTUBE_COOKIE") or 
+        os.environ.get("COOKIES") or 
+        os.environ.get("COOKIE") or 
+        os.environ.get("COOKIES_DATA") or
+        os.environ.get("COOKIES_TEXT")
+    )
     if raw_cookies and raw_cookies.strip():
         import tempfile
         import base64
         data = raw_cookies.strip()
+        # Strip wrapping quotes if user pasted with quotes
+        if (data.startswith('"') and data.endswith('"')) or (data.startswith("'") and data.endswith("'")):
+            data = data[1:-1].strip()
         if "\\n" in data and "\n" not in data:
             data = data.replace("\\n", "\n").replace("\\t", "\t")
         try:
@@ -71,6 +81,7 @@ def get_ydl_base_options() -> Dict[str, Any]:
             with open(cookie_path, "w", encoding="utf-8") as f:
                 f.write(data)
             opts["cookiefile"] = cookie_path
+            logger.info(f"Loaded {len(data)} bytes of YouTube cookies into {cookie_path}")
         except Exception as e:
             logger.warning(f"Could not write YOUTUBE_COOKIES to temp file: {e}")
     else:
@@ -127,17 +138,16 @@ def analyze_media_url(url: str) -> Dict[str, Any]:
         # Check for datacenter / bot block patterns
         if "failed to extract any player response" in err_msg or "confirm you're not a bot" in err_msg:
             raise ExtractorError(
-                "YouTube anti-bot block detected on this server IP. "
-                "Connect your mobile app to your Local PC server (e.g. http://<PC-IP>:8000) on the same Wi-Fi."
+                f"YouTube anti-bot block on cloud server: {str(e)[:160]}"
             )
         # Check for DRM / restricted patterns
         elif any(keyword in err_msg for keyword in [
             "drm", "protected", "copyright", "sign in", "login", 
             "private", "members-only", "premium", "paywall", 
-            "geographic", "blocked", "restricted", "token"
+            "geographic", "blocked", "restricted"
         ]):
             raise MediaRestrictedError(
-                "This media cannot be processed because it is protected, restricted, or unavailable."
+                f"Media restricted: {str(e)[:180]}"
             )
         elif "unsupported url" in err_msg or "is not a valid url" in err_msg:
             raise ExtractorError("The provided URL is not a supported media source.")
