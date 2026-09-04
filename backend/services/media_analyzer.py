@@ -194,15 +194,26 @@ def parse_media_info(raw_info: Dict[str, Any], original_url: str) -> MediaInfo:
     video_formats_map: Dict[str, VideoFormat] = {}
     best_audio_id = str(best_audio_stream.get("format_id")) if best_audio_stream else None
     
+    import re
     for f in raw_formats:
         vcodec = f.get("vcodec")
+        if (not vcodec or vcodec == "none") and f.get("video_ext") and f.get("video_ext") != "none":
+            vcodec = f.get("video_ext")
         if not vcodec or vcodec == "none":
             continue
         
         height = f.get("height")
         width = f.get("width")
         if not height or height <= 0:
-            continue
+            res_str = str(f.get("resolution") or f.get("format_note") or "")
+            m = re.search(r"(\d{3,4})p?", res_str)
+            if m:
+                try:
+                    height = int(m.group(1))
+                except ValueError:
+                    height = 720
+            else:
+                height = 720
             
         acodec = f.get("acodec")
         has_audio = bool(acodec and acodec != "none")
@@ -213,7 +224,6 @@ def parse_media_info(raw_info: Dict[str, Any], original_url: str) -> MediaInfo:
         # Calculate size
         filesize = f.get("filesize") or f.get("filesize_approx")
         if not filesize and tbr and duration:
-            # If video-only, add audio size estimate for final package
             audio_bitrate = (original_audio_specs.bitrate_kbps if original_audio_specs else 128) if not has_audio else 0
             filesize = int(((tbr + audio_bitrate) * 1000 / 8) * duration)
             
@@ -224,7 +234,6 @@ def parse_media_info(raw_info: Dict[str, Any], original_url: str) -> MediaInfo:
         # Create key to deduplicate identical resolution/codec pairs
         key = f"{height}_{fps}_{ext}_{v_codec_clean}"
         
-        # If we already have this resolution tier, prefer higher bitrate or mp4 container
         if key in video_formats_map:
             existing = video_formats_map[key]
             if (tbr or 0) <= (existing.bitrate_kbps or 0):
@@ -248,6 +257,64 @@ def parse_media_info(raw_info: Dict[str, Any], original_url: str) -> MediaInfo:
             audio_format_id_for_merge=best_audio_id if (not has_audio) else None
         )
         video_formats_map[key] = video_format
+
+    # Fallback: if no video formats were parsed (common on datacenter IPs), provide smart defaults
+    if not video_formats_map:
+        logger.info(f"Using smart fallback formats for {original_url}")
+        video_formats_map["1080"] = VideoFormat(
+            format_id="bestvideo[height<=1080]+bestaudio/best[height<=1080]/best",
+            extension="mp4",
+            quality_label="1080p Full HD",
+            resolution="1920x1080",
+            width=1920,
+            height=1080,
+            fps=30.0,
+            video_codec="H.264",
+            audio_codec="AAC",
+            has_video=True,
+            has_audio=True,
+            is_dash_video=False
+        )
+        video_formats_map["720"] = VideoFormat(
+            format_id="bestvideo[height<=720]+bestaudio/best[height<=720]/best",
+            extension="mp4",
+            quality_label="720p HD",
+            resolution="1280x720",
+            width=1280,
+            height=720,
+            fps=30.0,
+            video_codec="H.264",
+            audio_codec="AAC",
+            has_video=True,
+            has_audio=True,
+            is_dash_video=False
+        )
+        video_formats_map["360"] = VideoFormat(
+            format_id="bestvideo[height<=360]+bestaudio/best[height<=360]/best",
+            extension="mp4",
+            quality_label="360p",
+            resolution="640x360",
+            width=640,
+            height=360,
+            fps=30.0,
+            video_codec="H.264",
+            audio_codec="AAC",
+            has_video=True,
+            has_audio=True,
+            is_dash_video=False
+        )
+
+    # Fallback: ensure original_audio_specs is ALWAYS populated so audio conversion never fails
+    if not original_audio_specs:
+        original_audio_specs = OriginalAudioSpecs(
+            codec="Opus/AAC",
+            bitrate_kbps=160.0,
+            sample_rate_hz=48000,
+            channels=2,
+            channel_layout="Stereo",
+            format_id="bestaudio/best",
+            extension="m4a"
+        )
 
     # Sort video formats by height descending, then fps descending, then bitrate
     sorted_formats = sorted(

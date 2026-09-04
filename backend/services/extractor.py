@@ -56,11 +56,16 @@ def get_ydl_base_options() -> Dict[str, Any]:
         import tempfile
         import base64
         data = raw_cookies.strip()
+        if "\\n" in data and "\n" not in data:
+            data = data.replace("\\n", "\n").replace("\\t", "\t")
         try:
-            if not ("# Netscape" in data or "\t" in data):
+            if not ("# Netscape" in data or "\t" in data) and len(data) > 20:
                 data = base64.b64decode(data).decode("utf-8")
         except Exception:
             pass
+        if not data.startswith("#"):
+            data = "# Netscape HTTP Cookie File\n" + data
+            
         cookie_path = os.path.join(tempfile.gettempdir(), "mediaflow_yt_cookies.txt")
         try:
             with open(cookie_path, "w", encoding="utf-8") as f:
@@ -97,7 +102,6 @@ def analyze_media_url(url: str) -> Dict[str, Any]:
     """
     opts = get_ydl_base_options()
     opts["skip_download"] = True
-    opts["format"] = "all/best"
     opts["check_formats"] = False
     
     try:
@@ -168,9 +172,9 @@ def download_media_stream(
     # Resilient format selector: prioritize requested format_id with safe fallbacks
     if format_id and format_id.strip() and format_id.strip().lower() not in ("none", "null", "undefined"):
         clean_fid = format_id.strip()
-        opts["format"] = f"{clean_fid}/bestvideo+bestaudio/best"
+        opts["format"] = f"{clean_fid}/bestvideo+bestaudio/bestaudio/best"
     else:
-        opts["format"] = "bestvideo+bestaudio/best"
+        opts["format"] = "bestvideo+bestaudio/bestaudio/best"
     
     if progress_callback:
         opts["progress_hooks"] = [progress_callback]
