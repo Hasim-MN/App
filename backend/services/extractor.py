@@ -131,14 +131,14 @@ def get_ydl_base_options() -> Dict[str, Any]:
 def analyze_media_url(url: str) -> Dict[str, Any]:
     """
     Extracts metadata, stream formats, and audio information without downloading media.
-    Catches DRM and access restriction errors gracefully.
+    Catches DRM and access restriction errors gracefully with automatic cookie fallback.
     """
     opts = get_ydl_base_options()
     opts["skip_download"] = True
     opts["check_formats"] = False
     
-    try:
-        with yt_dlp.YoutubeDL(opts) as ydl:
+    def _extract(options: Dict[str, Any]):
+        with yt_dlp.YoutubeDL(options) as ydl:
             info = ydl.extract_info(url, download=False)
             if not info:
                 raise ExtractorError("No media stream information could be retrieved from this URL.")
@@ -152,10 +152,23 @@ def analyze_media_url(url: str) -> Dict[str, Any]:
                     raise ExtractorError("No media entries found.")
             
             return info
-            
+
+    try:
+        return _extract(opts)
     except yt_dlp.utils.DownloadError as e:
         err_msg = str(e).lower()
         logger.warning(f"yt-dlp download error for {url}: {err_msg}")
+        
+        # If cookies triggered a sign-in or bot challenge, retry cleanly without cookies
+        if opts.get("cookiefile") and any(k in err_msg for k in ["sign in", "login", "bot", "cookie"]):
+            logger.info(f"Cookie challenge detected for {url}; retrying without cookies...")
+            try:
+                opts_nocookies = dict(opts)
+                opts_nocookies.pop("cookiefile", None)
+                return _extract(opts_nocookies)
+            except Exception as retry_err:
+                logger.warning(f"Retry without cookies failed: {retry_err}")
+                err_msg = str(retry_err).lower()
         
         # Check for datacenter / bot block patterns
         if "failed to extract any player response" in err_msg or "confirm you're not a bot" in err_msg:
@@ -164,9 +177,8 @@ def analyze_media_url(url: str) -> Dict[str, Any]:
             )
         # Check for DRM / restricted patterns
         elif any(keyword in err_msg for keyword in [
-            "drm", "protected", "copyright", "sign in", "login", 
-            "private", "members-only", "premium", "paywall", 
-            "geographic", "blocked", "restricted"
+            "drm", "protected", "copyright", "private", "members-only", 
+            "premium", "paywall", "geographic", "blocked", "restricted"
         ]):
             raise MediaRestrictedError(
                 f"Media restricted: {str(e)[:180]}"
@@ -211,18 +223,30 @@ def download_media_stream(
     if progress_callback:
         opts["progress_hooks"] = [progress_callback]
         
+    def _download(options: Dict[str, Any]):
+        with yt_dlp.YoutubeDL(options) as ydl:
+            return ydl.extract_info(url, download=True)
+
     try:
-        with yt_dlp.YoutubeDL(opts) as ydl:
-            info = ydl.extract_info(url, download=True)
-            return info
+        return _download(opts)
     except yt_dlp.utils.DownloadError as e:
         err_msg = str(e).lower()
+        if opts.get("cookiefile") and any(k in err_msg for k in ["sign in", "login", "bot", "cookie"]):
+            logger.info(f"Download cookie challenge for {url}; retrying without cookies...")
+            try:
+                opts_nocookies = dict(opts)
+                opts_nocookies.pop("cookiefile", None)
+                return _download(opts_nocookies)
+            except Exception as retry_err:
+                logger.warning(f"Download retry without cookies failed: {retry_err}")
+                err_msg = str(retry_err).lower()
+                
         if "failed to extract any player response" in err_msg or "confirm you're not a bot" in err_msg:
             raise ExtractorError(
                 "YouTube anti-bot block detected on this server IP. "
                 "Connect your mobile app to your Local PC server (http://<PC-IP>:8000) on the same Wi-Fi."
             )
-        if any(keyword in err_msg for keyword in ["drm", "protected", "private", "sign in"]):
+        if any(keyword in err_msg for keyword in ["drm", "protected", "private"]):
             raise MediaRestrictedError(
                 "This media cannot be processed because it is protected, restricted, or unavailable."
             )
