@@ -30,6 +30,30 @@ const SAMPLE_URLS = [
   }
 ];
 
+function extractMagnetIfPresent(input: string): string {
+  const trimmed = input.trim();
+  if (trimmed.toLowerCase().startsWith('magnet:?')) {
+    return trimmed;
+  }
+  let cur = trimmed;
+  for (let i = 0; i < 4; i++) {
+    const idx = cur.toLowerCase().indexOf('magnet:?');
+    if (idx !== -1) {
+      let candidate = cur.substring(idx);
+      candidate = candidate.split('"')[0].split("'")[0].split(' ')[0];
+      return candidate;
+    }
+    try {
+      const decoded = decodeURIComponent(cur);
+      if (decoded === cur) break;
+      cur = decoded;
+    } catch {
+      break;
+    }
+  }
+  return trimmed;
+}
+
 export default function UrlInputSection({
   url,
   setUrl,
@@ -42,12 +66,13 @@ export default function UrlInputSection({
 
   // Validate URL format
   const validateUrl = (input: string): boolean => {
-    if (!input.trim()) {
+    const target = extractMagnetIfPresent(input);
+    if (!target.trim()) {
       setLocalError('Please paste or type a media URL or magnet link.');
       return false;
     }
     try {
-      const parsed = new URL(input.trim());
+      const parsed = new URL(target.trim());
 
       // Check for BitTorrent magnet link
       if (parsed.protocol === 'magnet:') {
@@ -99,8 +124,12 @@ export default function UrlInputSection({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (validateUrl(url)) {
-      onAnalyze();
+    const clean = extractMagnetIfPresent(url);
+    if (clean !== url) {
+      setUrl(clean);
+    }
+    if (validateUrl(clean)) {
+      onAnalyze(clean);
     }
   };
 
@@ -108,9 +137,10 @@ export default function UrlInputSection({
     try {
       const text = await navigator.clipboard.readText();
       if (text) {
-        setUrl(text.trim());
-        if (validateUrl(text.trim())) {
-          onAnalyze(text.trim());
+        const clean = extractMagnetIfPresent(text.trim());
+        setUrl(clean);
+        if (validateUrl(clean)) {
+          onAnalyze(clean);
         }
       }
     } catch (err) {

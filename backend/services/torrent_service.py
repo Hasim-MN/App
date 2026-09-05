@@ -37,20 +37,45 @@ TORRENT_THUMBNAIL_DATA_URI = (
     "</svg>"
 )
 
-def is_torrent_url(url: str) -> bool:
-    """Checks whether a given URL is a BitTorrent magnet link or .torrent file URL."""
+def extract_torrent_or_magnet_url(url: str) -> Optional[str]:
+    """
+    Extracts a clean magnet link or .torrent URL from raw links,
+    including web wrapper share links like uTorrent Web (utweb.rainberrytv.com/gui/share.html#link=magnet:...).
+    """
     if not url or not isinstance(url, str):
-        return False
-    clean = url.strip().lower()
-    if clean.startswith("magnet:?"):
-        return True
+        return None
+    clean = url.strip()
+    
+    # Direct magnet link
+    if clean.lower().startswith("magnet:?"):
+        return clean
+        
+    # Check for embedded magnet link (handles single, double, or triple URL encoding)
+    cur = clean
+    for _ in range(4):
+        idx = cur.lower().find("magnet:?")
+        if idx != -1:
+            candidate = cur[idx:]
+            candidate = candidate.split('"')[0].split("'")[0].split(" ")[0]
+            return candidate
+        prev = cur
+        cur = urllib.parse.unquote(cur)
+        if cur == prev:
+            break
+            
+    # Check for .torrent URL
     try:
         parsed = urllib.parse.urlparse(clean)
-        if parsed.path.endswith(".torrent") or ".torrent?" in clean:
-            return True
+        if parsed.path.lower().endswith(".torrent") or ".torrent?" in clean.lower():
+            return clean
     except Exception:
         pass
-    return False
+        
+    return None
+
+def is_torrent_url(url: str) -> bool:
+    """Checks whether a given URL is or contains a BitTorrent magnet link or .torrent file URL."""
+    return extract_torrent_or_magnet_url(url) is not None
 
 def get_aria2c_binary() -> Optional[str]:
     """
@@ -97,7 +122,8 @@ def analyze_torrent_url(url: str) -> MediaInfo:
     """
     Parses metadata from a magnet URI or .torrent URL and produces a MediaInfo response.
     """
-    url_clean = url.strip()
+    extracted_url = extract_torrent_or_magnet_url(url)
+    url_clean = extracted_url if extracted_url else url.strip()
     title = "BitTorrent Media"
     info_hash = ""
     trackers: List[str] = []
@@ -106,10 +132,18 @@ def analyze_torrent_url(url: str) -> MediaInfo:
         parsed = urllib.parse.urlparse(url_clean)
         qs = urllib.parse.parse_qs(parsed.query)
         
-        # Extract display name (dn)
+        # Extract display name (dn) and resolve multi-layer URL encoding (e.g. %2520, %255b)
         dn_list = qs.get("dn", [])
         if dn_list and dn_list[0].strip():
-            title = dn_list[0].strip()
+            raw_dn = dn_list[0].strip()
+            decoded_dn = raw_dn
+            for _ in range(3):
+                prev_dn = decoded_dn
+                decoded_dn = urllib.parse.unquote(decoded_dn)
+                if decoded_dn == prev_dn:
+                    break
+            if decoded_dn.strip():
+                title = decoded_dn.strip()
             
         # Extract info hash
         xt_list = qs.get("xt", [])

@@ -14,7 +14,7 @@ from backend.services.extractor import (
 )
 from backend.services.video_merger import merge_video_audio_streams, remux_video_container
 from backend.services.audio_converter import process_audio_conversion
-from backend.services.torrent_service import is_torrent_url, run_torrent_download
+from backend.services.torrent_service import is_torrent_url, run_torrent_download, extract_torrent_or_magnet_url
 from backend.config import settings
 
 logger = logging.getLogger("mediaflow.job_manager")
@@ -222,8 +222,9 @@ class JobManager:
                     eta=eta
                 )
 
+            clean_torrent_url = extract_torrent_or_magnet_url(req.url) or req.url.strip()
             final_path, final_name, file_size = await run_torrent_download(
-                job_id, req.url, job_dir, progress_callback
+                job_id, clean_torrent_url, job_dir, progress_callback
             )
 
             await self.update_job(
