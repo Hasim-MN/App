@@ -218,8 +218,8 @@ class JobManager:
                     status=JobStatus[status],
                     phase=phase,
                     percent=percent,
-                    speed=speed,
-                    eta=eta
+                    speed_str=speed,
+                    eta_str=eta
                 )
 
             clean_torrent_url = extract_torrent_or_magnet_url(req.url) or req.url.strip()
