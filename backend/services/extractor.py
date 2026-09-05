@@ -114,9 +114,17 @@ def get_ydl_base_options() -> Dict[str, Any]:
             opts["cookiefile"] = "cookies.txt"
 
     # Bind proxy if configured
-    proxy = os.environ.get("HTTP_PROXY") or os.environ.get("HTTPS_PROXY")
-    if proxy:
-        opts["proxy"] = proxy
+    proxy = (
+        os.environ.get("HTTP_PROXY") or 
+        os.environ.get("HTTPS_PROXY") or 
+        os.environ.get("PROXY") or 
+        os.environ.get("YOUTUBE_PROXY")
+    )
+    if proxy and proxy.strip():
+        clean_proxy = proxy.strip()
+        if (clean_proxy.startswith('"') and clean_proxy.endswith('"')) or (clean_proxy.startswith("'") and clean_proxy.endswith("'")):
+            clean_proxy = clean_proxy[1:-1].strip()
+        opts["proxy"] = clean_proxy
 
     # Bind FFmpeg location if available
     try:

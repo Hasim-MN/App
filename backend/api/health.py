@@ -36,6 +36,13 @@ async def health_check():
     has_cookies = bool(raw_cookies and raw_cookies.strip()) or os.path.exists("cookies.txt")
     cookies_bytes = len(raw_cookies.strip()) if (raw_cookies and raw_cookies.strip()) else 0
 
+    proxy = (
+        os.environ.get("HTTP_PROXY") or 
+        os.environ.get("HTTPS_PROXY") or 
+        os.environ.get("PROXY") or 
+        os.environ.get("YOUTUBE_PROXY")
+    )
+
     return {
         "status": overall_status,
         "app_name": settings.APP_NAME,
@@ -59,7 +66,8 @@ async def health_check():
             },
             "youtube_auth": {
                 "cookies_loaded": has_cookies,
-                "cookies_bytes": cookies_bytes
+                "cookies_bytes": cookies_bytes,
+                "proxy_configured": bool(proxy and proxy.strip())
             }
         },
         "limits": {
