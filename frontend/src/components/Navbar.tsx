@@ -43,9 +43,12 @@ export default function Navbar({ onSelectHistoryUrl }: NavbarProps) {
           
           {/* Logo */}
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-            <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-indigo-600 shadow-lg shadow-cyan-500/20 ring-1 ring-white/20">
-              <Film className="w-5 h-5 text-white absolute transform -translate-x-1 -translate-y-1" />
-              <Music2 className="w-4 h-4 text-cyan-200 absolute transform translate-x-1.5 translate-y-1.5" />
+            <div className="relative flex items-center justify-center w-10 h-10 rounded-xl overflow-hidden shadow-lg shadow-cyan-500/20 ring-1 ring-cyan-500/30 bg-slate-900">
+              <img
+                src="/logo.png"
+                alt="MediaFlow"
+                className="w-full h-full object-cover"
+              />
             </div>
             <div>
               <div className="flex items-center gap-2">

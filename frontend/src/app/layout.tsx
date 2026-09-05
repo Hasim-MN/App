@@ -6,6 +6,17 @@ export const metadata: Metadata = {
   description: 'Analyze media streams, download high-definition video formats with FFmpeg stream copying, and convert audio into MP3, FLAC, WAV, AAC, M4A, OGG, OPUS, ALAC, and AIFF.',
   keywords: ['media downloader', 'video inspector', 'audio converter', 'ffmpeg stream merge', 'flac converter', 'mp3 320k', 'mediaflow'],
   authors: [{ name: 'MediaFlow Team' }],
+  icons: {
+    icon: [
+      { url: '/favicon.ico' },
+      { url: '/favicon.png', sizes: '32x32', type: 'image/png' },
+      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
+  },
 };
 
 export const viewport: Viewport = {
