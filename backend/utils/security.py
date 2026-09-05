@@ -68,16 +68,44 @@ def is_ip_private_or_reserved(ip_str: str) -> bool:
     except ValueError:
         return True
 
+def is_valid_magnet_uri(url: str) -> Tuple[bool, str]:
+    """Validates whether a URI is a valid BitTorrent magnet link."""
+    try:
+        parsed = urllib.parse.urlparse(url)
+        if parsed.scheme.lower() != "magnet":
+            return False, "Not a magnet link."
+        
+        qs = urllib.parse.parse_qs(parsed.query)
+        xt_list = qs.get("xt", [])
+        if not xt_list:
+            return False, "Magnet link is missing exact topic (xt) parameter."
+        
+        has_btih = False
+        for xt in xt_list:
+            if xt.lower().startswith("urn:btih:"):
+                info_hash = xt[9:]
+                if re.fullmatch(r"[0-9a-fA-F]{40}", info_hash) or re.fullmatch(r"[2-7a-zA-Z]{32}", info_hash):
+                    has_btih = True
+                    break
+        
+        if not has_btih:
+            return False, "Magnet link must contain a valid BitTorrent info hash (urn:btih:)."
+            
+        return True, ""
+    except Exception as e:
+        return False, f"Invalid magnet URI: {str(e)}"
+
 def validate_url_security(url: str) -> Tuple[bool, str]:
     """
     Validates URL to protect against SSRF, unauthorized schemes, and internal network scans.
+    Supports HTTP, HTTPS, and Magnet (BitTorrent) schemes.
     Returns (is_valid, error_message).
     """
     if not url or not isinstance(url, str):
         return False, "URL cannot be empty."
     
     url_clean = url.strip()
-    if len(url_clean) > 2048:
+    if len(url_clean) > 4096:
         return False, "URL length exceeds limit."
     
     try:
@@ -85,8 +113,12 @@ def validate_url_security(url: str) -> Tuple[bool, str]:
     except Exception:
         return False, "Malformed URL format."
     
+    # Handle magnet URIs
+    if parsed.scheme.lower() == "magnet":
+        return is_valid_magnet_uri(url_clean)
+    
     if parsed.scheme.lower() not in ("http", "https"):
-        return False, f"Unsupported protocol '{parsed.scheme}'. Only HTTP and HTTPS are permitted."
+        return False, f"Unsupported protocol '{parsed.scheme}'. Only HTTP, HTTPS, and Magnet are permitted."
     
     hostname = parsed.hostname
     if not hostname:

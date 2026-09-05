@@ -14,6 +14,7 @@ from backend.services.extractor import (
 )
 from backend.services.video_merger import merge_video_audio_streams, remux_video_container
 from backend.services.audio_converter import process_audio_conversion
+from backend.services.torrent_service import is_torrent_url, run_torrent_download
 from backend.config import settings
 
 logger = logging.getLogger("mediaflow.job_manager")
@@ -201,9 +202,59 @@ class JobManager:
                     logger.debug(f"Failed to post download progress update: {ex}")
         return hook
 
+    async def run_torrent_job(self, job_id: str, req: VideoDownloadRequest):
+        job_dir = get_job_temp_dir(job_id)
+        try:
+            await self.update_job(
+                job_id,
+                status=JobStatus.PREPARING,
+                phase="Initializing BitTorrent engine & peer discovery...",
+                percent=3.0
+            )
+
+            async def progress_callback(status: str, phase: str, percent: float, speed: str, eta: str):
+                await self.update_job(
+                    job_id,
+                    status=JobStatus[status],
+                    phase=phase,
+                    percent=percent,
+                    speed=speed,
+                    eta=eta
+                )
+
+            final_path, final_name, file_size = await run_torrent_download(
+                job_id, req.url, job_dir, progress_callback
+            )
+
+            await self.update_job(
+                job_id,
+                status=JobStatus.COMPLETED,
+                phase="Completed",
+                percent=100.0,
+                file_name=final_name,
+                file_size_bytes=file_size,
+                output_path=final_path
+            )
+            logger.info(f"Torrent job {job_id} completed successfully: {final_name} ({file_size} bytes)")
+
+        except Exception as e:
+            logger.error(f"Torrent job {job_id} failed: {e}")
+            cleanup_job_dir(job_id)
+            await self.update_job(
+                job_id,
+                status=JobStatus.FAILED,
+                error=f"Torrent download failed: {str(e)}",
+                phase="Download Failed"
+            )
+
     async def run_video_job(self, job_id: str, req: VideoDownloadRequest):
         loop = asyncio.get_running_loop()
         async with self._semaphore:
+            # Check if this is a BitTorrent download
+            if is_torrent_url(req.url):
+                await self.run_torrent_job(job_id, req)
+                return
+
             job_dir = get_job_temp_dir(job_id)
             try:
                 await self.update_job(job_id, status=JobStatus.PREPARING, phase="Preparing media streams...", percent=5.0)

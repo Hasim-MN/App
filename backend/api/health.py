@@ -4,6 +4,7 @@ from fastapi import APIRouter
 from backend.services.ffmpeg_service import (
     ensure_ffmpeg_initialized, get_ffmpeg_version, get_ffprobe_version
 )
+from backend.services.torrent_service import get_aria2c_binary, get_aria2c_version
 from backend.config import settings
 
 logger = logging.getLogger("mediaflow.api.health")
@@ -68,6 +69,11 @@ async def health_check():
                 "cookies_loaded": has_cookies,
                 "cookies_bytes": cookies_bytes,
                 "proxy_configured": bool(proxy and proxy.strip())
+            },
+            "torrent": {
+                "available": bool(get_aria2c_binary()),
+                "engine": "aria2",
+                "version": get_aria2c_version()
             }
         },
         "limits": {

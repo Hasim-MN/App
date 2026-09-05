@@ -8,6 +8,7 @@ from backend.services.extractor import (
     analyze_media_url, ExtractorError, MediaRestrictedError
 )
 from backend.services.media_analyzer import parse_media_info
+from backend.services.torrent_service import is_torrent_url, analyze_torrent_url
 
 logger = logging.getLogger("mediaflow.api.analyze")
 router = APIRouter(prefix="/api", tags=["Analyze"])
@@ -15,7 +16,7 @@ router = APIRouter(prefix="/api", tags=["Analyze"])
 @router.post("/analyze", response_model=MediaInfo)
 async def analyze_url(req: AnalyzeRequest):
     """
-    Analyzes a video URL, extracts metadata, video stream formats, and audio information.
+    Analyzes a video URL or BitTorrent link, extracts metadata and format options.
     Enforces SSRF validation and DRM/restricted media checks.
     """
     url = req.url.strip()
@@ -28,7 +29,18 @@ async def analyze_url(req: AnalyzeRequest):
             detail=error_msg
         )
     
-    # 2. Extract and Parse Media Info
+    # 2. Check if URL is a BitTorrent magnet link or .torrent file
+    if is_torrent_url(url):
+        try:
+            return analyze_torrent_url(url)
+        except Exception as e:
+            logger.error(f"Torrent analysis failed: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Failed to inspect torrent link: {str(e)}"
+            )
+
+    # 3. Extract and Parse Media Info (standard streaming / yt-dlp)
     try:
         raw_info = await asyncio.to_thread(analyze_media_url, url)
         media_info = parse_media_info(raw_info, url)

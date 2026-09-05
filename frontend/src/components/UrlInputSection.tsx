@@ -23,6 +23,10 @@ const SAMPLE_URLS = [
   {
     label: '🎥 Blender Foundation (YouTube Demo)',
     url: 'https://www.youtube.com/watch?v=aqz-KE-bpKQ',
+  },
+  {
+    label: '🧲 Sintel (Open Magnet Torrent)',
+    url: 'magnet:?xt=urn:btih:08ada5a7a6183aae1e09d831df6748d566095a10&dn=Sintel&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337',
   }
 ];
 
@@ -39,13 +43,25 @@ export default function UrlInputSection({
   // Validate URL format
   const validateUrl = (input: string): boolean => {
     if (!input.trim()) {
-      setLocalError('Please paste or type a media URL.');
+      setLocalError('Please paste or type a media URL or magnet link.');
       return false;
     }
     try {
       const parsed = new URL(input.trim());
+
+      // Check for BitTorrent magnet link
+      if (parsed.protocol === 'magnet:') {
+        const xt = parsed.searchParams.get('xt');
+        if (!xt || !xt.toLowerCase().startsWith('urn:btih:')) {
+          setLocalError('Invalid magnet link: Missing BitTorrent infohash (urn:btih:).');
+          return false;
+        }
+        setLocalError(null);
+        return true;
+      }
+
       if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-        setLocalError('Only HTTP and HTTPS URLs are supported.');
+        setLocalError('Supported protocols: HTTP, HTTPS, and Magnet (BitTorrent).');
         return false;
       }
 
@@ -144,7 +160,7 @@ export default function UrlInputSection({
               setUrl(e.target.value);
               if (localError) setLocalError(null);
             }}
-            placeholder="Paste your video link here... (Ctrl+V)"
+            placeholder="Paste video, audio, or magnet torrent link... (Ctrl+V)"
             className="w-full bg-transparent text-white placeholder-slate-500 text-sm sm:text-base font-normal focus:outline-none px-2 py-2"
             disabled={isLoading}
           />
