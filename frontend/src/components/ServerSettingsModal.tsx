@@ -122,6 +122,16 @@ export default function ServerSettingsModal({
               <button
                 type="button"
                 onClick={() => {
+                  setServerUrl('https://mediaflow-backend-r09h.onrender.com');
+                  setTestStatus('idle');
+                }}
+                className="px-2.5 py-1 rounded-lg bg-indigo-950/80 border border-indigo-600/80 hover:border-indigo-400 text-[11px] text-indigo-300 font-semibold transition-colors shadow-sm"
+              >
+                ☁️ Cloud 24/7 (Render)
+              </button>
+              <button
+                type="button"
+                onClick={() => {
                   setServerUrl('http://172.21.144.47:8000');
                   setTestStatus('idle');
                 }}
@@ -156,17 +166,14 @@ export default function ServerSettingsModal({
           <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800/80 text-xs text-slate-300 space-y-2">
             <div className="flex items-center gap-2 font-medium text-cyan-400">
               <Smartphone className="w-4 h-4 shrink-0" />
-              <span>Mobile & Server Setup Guide:</span>
+              <span>Mobile & Cloud Connection Guide:</span>
             </div>
             <div className="space-y-1.5 text-[11px] text-slate-400 leading-relaxed">
               <p>
-                • <strong className="text-cyan-300">Recommended for YouTube (Local Wi-Fi):</strong> Cloud hosts (Render/AWS) have their IP addresses blocked by YouTube. Connect your phone to your PC on the same Wi-Fi using <code className="text-cyan-300 bg-cyan-950/70 px-1 py-0.5 rounded font-mono">http://172.21.144.47:8000</code>.
+                • <strong className="text-indigo-300">☁️ Cloud 24/7 (Render):</strong> Works even when your PC is completely turned off or when switching folders! Equipped with Webshare proxy to bypass YouTube bot blocks automatically.
               </p>
               <p>
-                • <strong className="text-slate-200">Terminal closed error?</strong> Closing your command prompt kills the local backend. Double-click <code className="text-cyan-300 bg-cyan-950/70 px-1 py-0.5 rounded">scripts/start_backend_background.vbs</code> on your PC to run it silently in the background with zero open windows!
-              </p>
-              <p>
-                • <strong className="text-slate-200">Cloud Hosting (Render):</strong> If using Render, YouTube may require cookies or local residential IP routing. Non-YouTube sources (Instagram, Twitter, Facebook, TikTok, etc.) work anywhere 24/7 on Render.
+                • <strong className="text-cyan-300">🏠 Local PC Background:</strong> When running locally, closing or switching folders in your IDE kills the terminal. Double-click <code className="text-cyan-300 bg-cyan-950/70 px-1 py-0.5 rounded font-mono">scripts/start_backend_background.vbs</code> on your PC so it stays running in the background independently!
               </p>
             </div>
           </div>

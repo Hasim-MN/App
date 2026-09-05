@@ -48,6 +48,31 @@ export default function UrlInputSection({
         setLocalError('Only HTTP and HTTPS URLs are supported.');
         return false;
       }
+
+      // Check for incomplete YouTube links (video IDs are 11 characters)
+      const host = parsed.hostname.toLowerCase();
+      if (host.includes('youtu.be')) {
+        const videoId = parsed.pathname.replace(/^\/+/, '').split('?')[0];
+        if (videoId.length < 11) {
+          setLocalError('Incomplete YouTube link. Please paste the full video URL (the 11-character video ID was cut off).');
+          return false;
+        }
+      } else if (host.includes('youtube.com')) {
+        if (parsed.pathname.includes('/watch')) {
+          const v = parsed.searchParams.get('v');
+          if (!v || v.length < 11) {
+            setLocalError('Incomplete YouTube link. Please ensure the full 11-character video ID (?v=...) is included.');
+            return false;
+          }
+        } else if (parsed.pathname.includes('/shorts/')) {
+          const shortId = parsed.pathname.split('/shorts/')[1]?.split('?')[0];
+          if (!shortId || shortId.length < 11) {
+            setLocalError('Incomplete YouTube Shorts link. Please paste the full Shorts URL.');
+            return false;
+          }
+        }
+      }
+
       setLocalError(null);
       return true;
     } catch {
