@@ -167,6 +167,17 @@ def analyze_media_url(url: str) -> Dict[str, Any]:
         err_msg = str(e).lower()
         logger.warning(f"yt-dlp download error for {url}: {err_msg}")
         
+        # If proxy failed / expired / exhausted quota (e.g. Tunnel connection failed, 407, 402), retry cleanly directly
+        if opts.get("proxy") and any(k in err_msg for k in ["proxy", "tunnel", "unable to connect to proxy", "407", "402", "502", "connection refused"]):
+            logger.warning(f"Proxy connection failed for {url} ({err_msg[:80]}); retrying cleanly with direct connection...")
+            try:
+                opts_noproxy = dict(opts)
+                opts_noproxy["proxy"] = ""
+                return _extract(opts_noproxy)
+            except Exception as retry_err:
+                logger.warning(f"Fallback without proxy failed: {retry_err}")
+                err_msg = str(retry_err).lower()
+
         # If cookies triggered a sign-in or bot challenge, retry cleanly without cookies
         if opts.get("cookiefile") and any(k in err_msg for k in ["sign in", "login", "bot", "cookie"]):
             logger.info(f"Cookie challenge detected for {url}; retrying without cookies...")
@@ -181,7 +192,8 @@ def analyze_media_url(url: str) -> Dict[str, Any]:
         # Check for datacenter / bot block patterns
         if "failed to extract any player response" in err_msg or "confirm you're not a bot" in err_msg:
             raise ExtractorError(
-                f"YouTube anti-bot block on cloud server: {str(e)[:160]}"
+                "YouTube anti-bot block on cloud server. "
+                "For 100% free unlimited downloads, switch to Local PC Wi-Fi (http://<PC-IP>:8000) or refresh cookies."
             )
         # Check for DRM / restricted patterns
         elif any(keyword in err_msg for keyword in [
@@ -213,6 +225,11 @@ def download_media_stream(
     """
     opts = get_ydl_base_options()
     
+    # Bypass proxy for downloading actual media stream bytes to prevent burning limited proxy quotas
+    # Google Video CDN links can be streamed directly without consuming proxy bandwidth
+    if not os.environ.get("FORCE_PROXY_DOWNLOADS", "").lower() in ("true", "1", "yes"):
+        opts["proxy"] = ""
+
     # Isolate directory and filename to prevent backslash/path concatenation bugs on Windows
     out_path = Path(output_template)
     job_dir = str(out_path.parent.resolve())
@@ -239,6 +256,17 @@ def download_media_stream(
         return _download(opts)
     except yt_dlp.utils.DownloadError as e:
         err_msg = str(e).lower()
+        # Fallback if download proxy failed
+        if opts.get("proxy") and any(k in err_msg for k in ["proxy", "tunnel", "unable to connect to proxy", "407", "402", "502"]):
+            logger.warning(f"Download proxy error for {url}; retrying directly without proxy...")
+            try:
+                opts_noproxy = dict(opts)
+                opts_noproxy["proxy"] = ""
+                return _download(opts_noproxy)
+            except Exception as retry_err:
+                logger.warning(f"Download retry without proxy failed: {retry_err}")
+                err_msg = str(retry_err).lower()
+
         if opts.get("cookiefile") and any(k in err_msg for k in ["sign in", "login", "bot", "cookie"]):
             logger.info(f"Download cookie challenge for {url}; retrying without cookies...")
             try:

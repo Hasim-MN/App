@@ -123,22 +123,34 @@ Because the app runs on your phone:
    - **Cloud/Hosted**: `https://your-api-domain.com`
 3. Tap **Test Connection** & **Save & Connect**.
 
-### 📱 Running Mobile App Without Keeping Local Terminal Open
+### 📱 24/7 Always-On Mode (Laptop Lid Closed & Auto-Start)
 
-#### Option A: Run Backend Silently in Windows Background (Local PC)
-If you don't want to keep a terminal window open on your computer:
-1. Double-click `scripts/start_backend_background.vbs`.
-   - The backend runs silently in the background with no command prompt window.
-   - Closing your IDE or terminals will **not** kill it.
-2. To stop the background server at any time, double-click `scripts/stop_backend.bat`.
+You can run MediaFlow 24/7 like a dedicated home server without opening your laptop screen:
 
-#### Option B: Deploy 24/7 for Free on Render.com (Permanent Cloud URL)
-To use the mobile app anywhere without keeping your PC powered on:
-1. Push this repository to GitHub.
-2. Log into [Render.com](https://render.com) (free tier available).
-3. Click **New +** -> **Blueprint** and connect your GitHub repo (it automatically reads `render.yaml`).
-4. Once deployed, copy your permanent service URL (e.g. `https://mediaflow-backend.onrender.com`).
-5. Open your mobile app, tap **Server**, paste your URL, and tap **Save & Connect**. Your mobile app will work 24/7 worldwide!
+1. **Configure Lid-Closed Power (One-Time Setup)**:
+   - Double-click `scripts/setup_lid_always_on.bat`.
+   - This sets Windows so that when your laptop is plugged into power, closing the lid will **never** put the laptop to sleep or drop Wi-Fi (the screen turns off after 5 min to save power).
+2. **Enable Auto-Start on Boot**:
+   - Double-click `scripts/install_auto_start_service.bat`.
+   - MediaFlow will now automatically start in the background whenever your laptop turns on.
+3. **Connect from Your Phone App**:
+   - Open the **MediaFlow** app on your phone.
+   - Tap the **Server** icon in the header.
+   - Enter: `http://alim-pc.local:8000` (or check `scripts/show_network_urls.bat` for your addresses).
+   - Tap **Save & Connect**.
+4. **Close Your Laptop Lid**:
+   - Keep your laptop plugged into its power cable and close the lid.
+   - You never need to open your laptop again! Use MediaFlow from your phone anytime 24/7.
+
+#### 5G Remote Access (Anywhere Outside Your Home):
+If you want to use the app when away from home Wi-Fi (on mobile 4G/5G data):
+- Double-click `scripts/start_all_5g.bat`.
+- Copy the public `https://....trycloudflare.com` link into your phone app.
+
+#### Stop or Uninstall:
+- To stop the server at any time: Double-click `scripts/stop_backend.bat`.
+- To remove auto-start on boot: Double-click `scripts/uninstall_auto_start_service.bat`.
+
 
 ---
 

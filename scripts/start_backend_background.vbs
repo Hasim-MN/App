@@ -7,8 +7,10 @@ strScriptDir = FSO.GetParentFolderName(WScript.ScriptFullName)
 strAppDir = FSO.GetParentFolderName(strScriptDir)
 WshShell.CurrentDirectory = strAppDir
 
-strCommand = "py -3.14 -m uvicorn backend.main:app --host 0.0.0.0 --port 8000"
+strBackendLog = strScriptDir & "\backend.log"
+strCommand = "cmd.exe /c py -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 >> """ & strBackendLog & """ 2>&1"
 ' 0 = Hide window completely, False = Do not wait for completion
 WshShell.Run strCommand, 0, False
 
 Set WshShell = Nothing
+Set FSO = Nothing

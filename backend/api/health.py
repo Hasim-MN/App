@@ -82,3 +82,59 @@ async def health_check():
             "job_retention_minutes": settings.JOB_RETENTION_SECONDS // 60
         }
     }
+
+
+@router.get("/network")
+async def get_network_info():
+    """
+    Returns server network connectivity endpoints:
+    - Hostname and mDNS URL (e.g. http://ALIM-PC.local:8000)
+    - Local LAN IP (e.g. http://10.148.250.47:8000)
+    - Active Cloudflare 5G tunnel URL (if running)
+    """
+    import socket
+    import re
+    from pathlib import Path
+
+    hostname = socket.gethostname()
+    
+    # Try to find local IP
+    local_ip = "127.0.0.1"
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.settimeout(0.5)
+        # connect to a public DNS IP (does not actually send packets)
+        s.connect(("8.8.8.8", 80))
+        local_ip = s.getsockname()[0]
+        s.close()
+    except Exception:
+        pass
+
+    # Check for active cloudflared tunnel URL in scripts/tunnel.log
+    tunnel_url = None
+    log_candidates = [
+        Path("scripts/tunnel.log"),
+        Path("../scripts/tunnel.log"),
+        Path(__file__).parent.parent.parent / "scripts" / "tunnel.log"
+    ]
+    for log_path in log_candidates:
+        if log_path.exists():
+            try:
+                # Read last 100 lines
+                content = log_path.read_text(encoding="utf-8", errors="ignore")
+                matches = re.findall(r"https://[a-zA-Z0-9-]+\.trycloudflare\.com", content)
+                if matches:
+                    tunnel_url = matches[-1]
+                    break
+            except Exception:
+                pass
+
+    return {
+        "hostname": hostname,
+        "local_ip": local_ip,
+        "mdns_url": f"http://{hostname.lower()}.local:8000",
+        "lan_url": f"http://{local_ip}:8000",
+        "tunnel_url": tunnel_url,
+        "recommended_phone_url": f"http://{hostname.lower()}.local:8000"
+    }
+
