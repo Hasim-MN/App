@@ -122,6 +122,16 @@ export default function ServerSettingsModal({
               <button
                 type="button"
                 onClick={() => {
+                  setServerUrl('http://127.0.0.1:8000');
+                  setTestStatus('idle');
+                }}
+                className="px-2.5 py-1 rounded-lg bg-violet-950/90 border border-violet-500 hover:border-violet-400 text-[11px] text-violet-200 font-bold transition-colors shadow-sm"
+              >
+                📱 On-Phone Server (127.0.0.1:8000) - No Laptop Needed!
+              </button>
+              <button
+                type="button"
+                onClick={() => {
                   setServerUrl('http://alim-pc.local:8000');
                   setTestStatus('idle');
                 }}

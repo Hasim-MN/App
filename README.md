@@ -123,33 +123,44 @@ Because the app runs on your phone:
    - **Cloud/Hosted**: `https://your-api-domain.com`
 3. Tap **Test Connection** & **Save & Connect**.
 
-### 📱 24/7 Always-On Mode (Laptop Lid Closed & Auto-Start)
+### 📲 Shift Server 100% Onto Your Phone (Zero Laptop Needed!)
 
-You can run MediaFlow 24/7 like a dedicated home server without opening your laptop screen:
+If you want MediaFlow to work **completely independently** even when your laptop is completely shut down or turned off:
 
-1. **Configure Lid-Closed Power (One-Time Setup)**:
-   - Double-click `scripts/setup_lid_always_on.bat`.
-   - This sets Windows so that when your laptop is plugged into power, closing the lid will **never** put the laptop to sleep or drop Wi-Fi (the screen turns off after 5 min to save power).
-2. **Enable Auto-Start on Boot**:
-   - Double-click `scripts/install_auto_start_service.bat`.
-   - MediaFlow will now automatically start in the background whenever your laptop turns on.
-3. **Connect from Your Phone App**:
-   - Open the **MediaFlow** app on your phone.
-   - Tap the **Server** icon in the header.
-   - Enter: `http://alim-pc.local:8000` (or check `scripts/show_network_urls.bat` for your addresses).
-   - Tap **Save & Connect**.
-4. **Close Your Laptop Lid**:
-   - Keep your laptop plugged into its power cable and close the lid.
-   - You never need to open your laptop again! Use MediaFlow from your phone anytime 24/7.
+You can run the MediaFlow Python backend directly inside your Android phone using **Termux** (free Linux terminal for Android):
 
-#### 5G Remote Access (Anywhere Outside Your Home):
-If you want to use the app when away from home Wi-Fi (on mobile 4G/5G data):
-- Double-click `scripts/start_all_5g.bat`.
-- Copy the public `https://....trycloudflare.com` link into your phone app.
+#### Step 1: Install Termux on your phone
+- Download and install **Termux** from [F-Droid](https://f-droid.org/packages/com.termux/) or GitHub ([Termux Releases](https://github.com/termux/termux-app/releases)).
 
-#### Stop or Uninstall:
-- To stop the server at any time: Double-click `scripts/stop_backend.bat`.
-- To remove auto-start on boot: Double-click `scripts/uninstall_auto_start_service.bat`.
+#### Step 2: Run the 1-Line Setup Command
+Open Termux on your phone, paste this single command, and press **Enter**:
+```bash
+pkg update -y && pkg install -y git python ffmpeg aria2 && git clone https://github.com/Hasim-MN/App.git mediaflow && cd mediaflow && bash scripts/setup_phone.sh
+```
+This automatically configures Python, FFmpeg, and downloads all dependencies right inside your phone!
+
+#### Step 3: Launch and Connect
+1. In Termux, whenever you want to start the server, type:
+   ```bash
+   bash ~/start_mediaflow.sh
+   ```
+2. Open your **MediaFlow Downloader** app on your phone.
+3. Tap the **Server** icon in the header and select:
+   ```
+   http://127.0.0.1:8000
+   ```
+4. Tap **Save & Connect**.
+
+MediaFlow now runs **100% locally on your phone**! You can power off, shut down, or leave your laptop anywhere — all downloads, video stream copying, audio conversions, and torrents happen directly on your phone!
+
+---
+
+### 💻 Alternative: 24/7 Always-On Mode (Using Laptop with Lid Closed)
+If you prefer your laptop to do the heavy downloading while plugged in with the lid closed:
+1. Double-click `scripts/setup_lid_always_on.bat` (configures Windows not to sleep when closed).
+2. Double-click `scripts/install_auto_start_service.bat` (auto-starts backend on PC boot).
+3. Connect your phone via `http://alim-pc.local:8000` (on home Wi-Fi) or 5G Cloudflare Tunnel.
+
 
 
 ---
