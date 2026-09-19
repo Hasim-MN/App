@@ -20,7 +20,7 @@ WshShell.Run strBackendCmd, 0, False
 ' 2. Start Cloudflare 5G Tunnel silently (if cloudflared.exe exists)
 strCloudflared = strScriptDir & "\cloudflared.exe"
 If FSO.FileExists(strCloudflared) Then
-    strTunnelCmd = "cmd.exe /c cd /d """ & strScriptDir & """ && """ & strCloudflared & """ tunnel --url http://localhost:8000 --logfile """ & strTunnelLog & """"
+    strTunnelCmd = """" & strCloudflared & """ tunnel --url http://localhost:8000 --logfile """ & strTunnelLog & """"
     WshShell.Run strTunnelCmd, 0, False
 End If
 
