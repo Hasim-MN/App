@@ -3,7 +3,7 @@
   "appName": "MediaFlow Downloader",
   "webDir": "out",
   "server": {
-    "androidScheme": "https",
+    "androidScheme": "http",
     "cleartext": true
   },
   "android": {
