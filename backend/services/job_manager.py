@@ -342,10 +342,16 @@ class JobManager:
                     
                     downloaded_file = None
                     for f in job_dir.iterdir():
-                        if f.name.startswith("temp_media.") and not f.name.endswith(".part") and not f.name.endswith(".ytdl"):
+                        if (f.name.startswith("temp_media.") or f.name.startswith("source_media.")) and not f.name.endswith(".part") and not f.name.endswith(".ytdl"):
                             downloaded_file = str(f)
                             break
                             
+                    if not downloaded_file:
+                        for f in job_dir.iterdir():
+                            if f.is_file() and not f.name.endswith(".part") and not f.name.endswith(".ytdl") and not f.name.endswith(".tmp"):
+                                downloaded_file = str(f)
+                                break
+
                     if not downloaded_file:
                         raise ExtractorError("Downloaded media file not found.")
 
@@ -438,10 +444,16 @@ class JobManager:
 
                 downloaded_file = None
                 for f in job_dir.iterdir():
-                    if f.name.startswith("source_audio.") and not f.name.endswith(".part") and not f.name.endswith(".ytdl"):
+                    if (f.name.startswith("source_audio.") or f.name.startswith("source_media.")) and not f.name.endswith(".part") and not f.name.endswith(".ytdl"):
                         downloaded_file = str(f)
                         break
                         
+                if not downloaded_file:
+                    for f in job_dir.iterdir():
+                        if f.is_file() and not f.name.endswith(".part") and not f.name.endswith(".ytdl") and not f.name.endswith(".tmp"):
+                            downloaded_file = str(f)
+                            break
+
                 if not downloaded_file:
                     raise ExtractorError("Source audio stream could not be downloaded.")
 

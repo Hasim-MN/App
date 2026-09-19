@@ -13,8 +13,8 @@ WshShell.CurrentDirectory = strAppDir
 strBackendLog = strScriptDir & "\backend.log"
 strTunnelLog = strScriptDir & "\tunnel.log"
 
-' 1. Start FastAPI Backend Server silently via cmd wrapper
-strBackendCmd = "cmd.exe /c cd /d """ & strAppDir & """ && py -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 >> """ & strBackendLog & """ 2>&1"
+' 1. Start FastAPI Backend Server silently via cmd wrapper with proper escaping
+strBackendCmd = "cmd.exe /c ""cd /d """ & strAppDir & """ && py -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 >> """ & strBackendLog & """ 2>&1"""
 WshShell.Run strBackendCmd, 0, False
 
 ' 2. Start Cloudflare 5G Tunnel silently (if cloudflared.exe exists)

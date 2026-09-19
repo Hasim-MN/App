@@ -29,13 +29,13 @@ def get_ydl_base_options() -> Dict[str, Any]:
         "ignoreerrors": False,
         "geo_bypass": True,
         "extract_flat": False,
-        # Windows & OS file system resilience
         "windowsfilenames": True,
         "restrictfilenames": True,
         "trim_file_name": 100,
         "updatetime": False,       # Prevents Windows os.utime [Errno 22] Invalid argument
         "no_mtime": True,
         "overwrites": True,
+        "nopart": True,            # Writes directly to output file, avoiding Windows rename/replace [Errno 22]
         "no_color": True,
         "http_headers": {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
@@ -230,20 +230,25 @@ def download_media_stream(
     if not os.environ.get("FORCE_PROXY_DOWNLOADS", "").lower() in ("true", "1", "yes"):
         opts["proxy"] = ""
 
-    # Isolate directory and filename to prevent backslash/path concatenation bugs on Windows
+    # Isolate directory and clean normalized output path
     out_path = Path(output_template)
     job_dir = str(out_path.parent.resolve())
-    file_name_tmpl = out_path.name
-
-    opts["paths"] = {"home": job_dir, "temp": job_dir}
-    opts["outtmpl"] = {"default": file_name_tmpl}
+    os.makedirs(job_dir, exist_ok=True)
+    
+    # Use direct absolute normalized path for outtmpl without conflicting paths dictionary
+    full_output_tmpl = os.path.normpath(str(out_path))
+    opts["outtmpl"] = full_output_tmpl
+    opts["nopart"] = True
     
     # Resilient format selector: prioritize requested format_id with safe fallbacks
     if format_id and format_id.strip() and format_id.strip().lower() not in ("none", "null", "undefined"):
         clean_fid = format_id.strip()
-        opts["format"] = f"{clean_fid}/bestvideo+bestaudio/bestaudio/best"
+        if "/" in clean_fid:
+            opts["format"] = f"{clean_fid}/best"
+        else:
+            opts["format"] = f"{clean_fid}/bestaudio/best/bestvideo+bestaudio"
     else:
-        opts["format"] = "bestvideo+bestaudio/bestaudio/best"
+        opts["format"] = "bestaudio/best/bestvideo+bestaudio"
     
     if progress_callback:
         opts["progress_hooks"] = [progress_callback]
@@ -276,6 +281,17 @@ def download_media_stream(
             except Exception as retry_err:
                 logger.warning(f"Download retry without cookies failed: {retry_err}")
                 err_msg = str(retry_err).lower()
+
+        # Resilient format fallback retry: if requested format_id was unavailable, retry with best available stream
+        try:
+            logger.info(f"Retrying download with resilient general stream selector for {url}...")
+            opts_fallback = dict(opts)
+            opts_fallback["format"] = "best/bestaudio"
+            opts_fallback["nopart"] = True
+            opts_fallback["outtmpl"] = os.path.normpath(os.path.join(job_dir, "source_media.%(ext)s"))
+            return _download(opts_fallback)
+        except Exception as fallback_err:
+            logger.warning(f"Resilient stream fallback also failed: {fallback_err}")
                 
         if "failed to extract any player response" in err_msg or "confirm you're not a bot" in err_msg:
             raise ExtractorError(
@@ -289,16 +305,32 @@ def download_media_stream(
         raise ExtractorError(f"Download failed: {str(e)[:120]}")
     except yt_dlp.utils.UnavailableVideoError as e:
         err_str = str(e)
-        logger.error(f"UnavailableVideoError downloading {url}: {err_str}")
-        if "errno 22" in err_str.lower():
-            raise ExtractorError("File system error: filename or stream parameters could not be written to disk.")
-        raise ExtractorError(f"Media stream unavailable: {err_str[:120]}")
+        logger.warning(f"UnavailableVideoError for {url}: {err_str}; attempting safe fallback stream...")
+        try:
+            opts_fallback = dict(opts)
+            opts_fallback["format"] = "best"
+            opts_fallback["nopart"] = True
+            opts_fallback["outtmpl"] = os.path.normpath(os.path.join(job_dir, "source_media.%(ext)s"))
+            return _download(opts_fallback)
+        except Exception as retry_err:
+            logger.error(f"Fallback after UnavailableVideoError failed: {retry_err}")
+            if "errno 22" in str(retry_err).lower() or "errno 22" in err_str.lower():
+                raise ExtractorError("Storage write error: unable to write media stream parameters to disk.")
+            raise ExtractorError(f"Media stream unavailable: {err_str[:120]}")
     except yt_dlp.utils.YoutubeDLError as e:
         logger.error(f"YoutubeDLError downloading {url}: {e}")
         raise ExtractorError(f"Stream download error: {str(e)[:120]}")
     except Exception as e:
         err_str = str(e)
         logger.error(f"Unexpected error downloading stream: {err_str}")
+        try:
+            opts_fallback = dict(opts)
+            opts_fallback["format"] = "best"
+            opts_fallback["nopart"] = True
+            opts_fallback["outtmpl"] = os.path.normpath(os.path.join(job_dir, "source_media.%(ext)s"))
+            return _download(opts_fallback)
+        except Exception:
+            pass
         if "errno 22" in err_str.lower():
             raise ExtractorError("Storage write error: invalid file argument or path restriction.")
         raise ExtractorError(f"Stream download encountered an error: {err_str[:120]}")
