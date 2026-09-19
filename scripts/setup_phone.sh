@@ -39,9 +39,20 @@ EOF
 
 chmod +x "$LAUNCHER"
 
+# Create stop shortcut in home directory
+STOPPER="$HOME/stop_mediaflow.sh"
+cat << 'EOF' > "$STOPPER"
+#!/data/data/com.termux/files/usr/bin/bash
+pkill -f "uvicorn backend.main:app" 2>/dev/null
+pkill -f "python -m uvicorn" 2>/dev/null
+echo "🛑 MediaFlow Server STOPPED."
+EOF
+chmod +x "$STOPPER"
+
 # Also link to ~/.shortcuts if Termux:Widget is used
 mkdir -p "$HOME/.shortcuts"
-cp "$LAUNCHER" "$HOME/.shortcuts/MediaFlow" 2>/dev/null || true
+cp "$LAUNCHER" "$HOME/.shortcuts/MediaFlow-Start" 2>/dev/null || true
+cp "$STOPPER" "$HOME/.shortcuts/MediaFlow-Stop" 2>/dev/null || true
 
 echo ""
 echo "========================================================"
