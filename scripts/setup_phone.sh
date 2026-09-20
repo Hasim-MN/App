@@ -21,9 +21,17 @@ pkg update -y || true
 echo "[2/4] Installing Python, FFmpeg, Git, and Aria2c..."
 pkg install -y python ffmpeg git aria2 clang make libjpeg-turbo || true
 
-# 3. Upgrade pip and install Python dependencies
-echo "[3/4] Installing Python requirements..."
+# 3. Upgrade pip and install pre-built pydantic-core for Android ARM64
+echo "[3/5] Installing Python tools & pre-built pydantic-core..."
 python -m pip install --upgrade pip setuptools wheel
+echo "Fetching pre-built pydantic-core wheel for Android..."
+curl -sL https://raw.githubusercontent.com/Eutalix/android-pydantic-core/main/install_pydantic_core.sh | bash || {
+  echo "Fallback: trying extra-index-url..."
+  python -m pip install pydantic-core --extra-index-url https://eutalix.github.io/android-pydantic-core/
+}
+
+# 4. Install remaining Python dependencies
+echo "[4/5] Installing Python requirements..."
 python -m pip install -r "$APP_DIR/backend/requirements-phone.txt"
 
 # 4. Create launcher shortcut in home directory
@@ -58,13 +66,22 @@ cp "$LAUNCHER" "$HOME/.shortcuts/MediaFlow-Start" 2>/dev/null || true
 cp "$STOPPER" "$HOME/.shortcuts/MediaFlow-Stop" 2>/dev/null || true
 
 echo ""
-echo "========================================================"
-echo "  🎉 SUCCESS! MediaFlow is installed on your phone!"
-echo "========================================================"
-echo ""
-echo "  To start the server right now, run:"
-echo "    bash ~/start_mediaflow.sh"
-echo ""
-echo "  Then open your MediaFlow Android app, tap Server, and"
-echo "  select: http://127.0.0.1:8000"
-echo "========================================================"
+echo "[5/5] Verifying installation..."
+if python -c "import fastapi, uvicorn, yt_dlp, pydantic; print('All core modules verified successfully!')" 2>/dev/null; then
+  echo ""
+  echo "========================================================"
+  echo "  🎉 SUCCESS! MediaFlow is ready on your phone!"
+  echo "========================================================"
+  echo ""
+  echo "  To start the server right now, run:"
+  echo "    bash ~/start_mediaflow.sh"
+  echo ""
+  echo "  Then in your app, use: http://127.0.0.1:8000"
+  echo "========================================================"
+else
+  echo ""
+  echo "========================================================"
+  echo "  ⚠️ Warning: Core dependencies could not be imported."
+  echo "  Please check the error output above."
+  echo "========================================================"
+fi
