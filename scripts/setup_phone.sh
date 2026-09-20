@@ -10,31 +10,34 @@ echo "  100% Local - No Laptop, No Cloud, No Limits!"
 echo "========================================================"
 echo ""
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+APP_DIR="$(dirname "$SCRIPT_DIR")"
+
 # 1. Update Termux package lists
 echo "[1/4] Updating package repositories..."
-pkg update -y
+pkg update -y || true
 
 # 2. Install essential packages (Python, FFmpeg, Git, Aria2)
 echo "[2/4] Installing Python, FFmpeg, Git, and Aria2c..."
-pkg install -y python ffmpeg git aria2 clang make libjpeg-turbo
+pkg install -y python ffmpeg git aria2 clang make libjpeg-turbo || true
 
 # 3. Upgrade pip and install Python dependencies
 echo "[3/4] Installing Python requirements..."
 python -m pip install --upgrade pip setuptools wheel
-python -m pip install -r backend/requirements.txt
+python -m pip install -r "$APP_DIR/backend/requirements-phone.txt"
 
 # 4. Create launcher shortcut in home directory
 LAUNCHER="$HOME/start_mediaflow.sh"
-cat << 'EOF' > "$LAUNCHER"
+cat << EOF > "$LAUNCHER"
 #!/data/data/com.termux/files/usr/bin/bash
 clear
 echo "========================================================"
 echo "  🚀 Starting MediaFlow Backend on your Android Phone..."
-echo "  Server: http://127.0.0.1:8000"
+echo "  Server: http://127.0.0.1:8000 (also http://0.0.0.0:8000)"
 echo "========================================================"
 echo ""
-cd "$HOME/mediaflow" || cd "$HOME/App"
-python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
+cd "$APP_DIR" || cd "\$HOME/mediaflow" || cd "\$HOME/App"
+python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000
 EOF
 
 chmod +x "$LAUNCHER"
