@@ -21,14 +21,31 @@ pkg update -y || true
 echo "[2/4] Installing Python, FFmpeg, Git, and Aria2c..."
 pkg install -y python ffmpeg git aria2 clang make libjpeg-turbo || true
 
-# 3. Upgrade pip and install pre-built pydantic-core for Android ARM64
-echo "[3/5] Installing Python tools & pre-built pydantic-core..."
+# 3. Install pre-built pydantic-core for Android ARM64
+echo "[3/5] Installing pre-compiled pydantic-core for Android..."
 python -m pip install --upgrade pip setuptools wheel
-echo "Fetching pre-built pydantic-core wheel for Android..."
-curl -sL https://raw.githubusercontent.com/Eutalix/android-pydantic-core/main/install_pydantic_core.sh | bash || {
-  echo "Fallback: trying extra-index-url..."
-  python -m pip install pydantic-core --extra-index-url https://eutalix.github.io/android-pydantic-core/
-}
+
+PY_MAJOR=$(python3 -c "import sys; print(sys.version_info.major)")
+PY_MINOR=$(python3 -c "import sys; print(sys.version_info.minor)")
+PY_TAG="cp${PY_MAJOR}${PY_MINOR}"
+SITE_DIR=$(python3 -c "import site; print(site.getsitepackages()[0])")
+
+TMP_WHL="$HOME/pydantic_core.whl"
+echo "Downloading pre-compiled pydantic-core for Python ${PY_MAJOR}.${PY_MINOR} (${PY_TAG})..."
+curl -sL -o "$TMP_WHL" "https://github.com/Eutalix/android-pydantic-core/releases/download/v2.46.3/pydantic_core-2.46.3-${PY_TAG}-${PY_TAG}-linux_aarch64.whl"
+
+if [ -f "$TMP_WHL" ] && [ -s "$TMP_WHL" ]; then
+  echo "Unpacking pydantic-core directly into $SITE_DIR..."
+  python3 -m zipfile -e "$TMP_WHL" "$SITE_DIR"
+  rm -f "$TMP_WHL"
+fi
+
+if python3 -c "import pydantic_core; print('pydantic_core ready!')" 2>/dev/null; then
+  echo "✓ pydantic_core successfully loaded!"
+else
+  echo "Attempting fallback installation..."
+  python3 -m pip install pydantic-core --extra-index-url https://eutalix.github.io/android-pydantic-core/ || true
+fi
 
 # 4. Install remaining Python dependencies
 echo "[4/5] Installing Python requirements..."
